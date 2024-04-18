@@ -12,14 +12,13 @@ using Command = OpenMod.Core.Commands.Command;
 
 namespace BroadcastUI.Commands
 {
-    [Command("announce")]
-    [CommandAlias("ann")]
+    [Command("bc")]
     [CommandDescription("Announce a message")]
     [CommandSyntax("<type> <message>")]
-    public class Announce : Command
+    public class Broadcast : Command
     {
         private readonly UnturnedUserDirectory _UnturnedUserDirectory;
-        public Announce(IServiceProvider serviceProvider, UnturnedUserDirectory unturnedUserDirectory) : base(serviceProvider)
+        public Broadcast(IServiceProvider serviceProvider, UnturnedUserDirectory unturnedUserDirectory) : base(serviceProvider)
         {
             _UnturnedUserDirectory = unturnedUserDirectory;
         }
