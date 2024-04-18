@@ -18,14 +18,20 @@ namespace BroadcastUI.Commands
     [CommandSyntax("<type> <message>")]
     public class Announce : Command
     {
-        public Announce(IServiceProvider serviceProvider) : base(serviceProvider)
+        private readonly UnturnedUserDirectory _UnturnedUserDirectory;
+        public Announce(IServiceProvider serviceProvider, UnturnedUserDirectory unturnedUserDirectory) : base(serviceProvider)
         {
+            _UnturnedUserDirectory = unturnedUserDirectory;
         }
 
         protected override async Task OnExecuteAsync()
         {
-            Announce commandDuty = this;
-            UnturnedUser actor = (UnturnedUser)((CommandBase)commandDuty).Context.Actor;
+            var actor = Context.Actor as UnturnedUser;
+
+            if (actor == null) 
+            { 
+                throw new UserFriendlyException("An unknown error occurred.");
+            }
 
             string type = "general";
             string message;
@@ -42,7 +48,6 @@ namespace BroadcastUI.Commands
                 type = await Context.Parameters.GetAsync<string>(0);
                 message = await Context.Parameters.GetAsync<string>(1);
             }
-            await UniTask.SwitchToMainThread();
 
             switch (type)
             {
@@ -50,36 +55,38 @@ namespace BroadcastUI.Commands
                     announce = "Announcement";
                     id = 19366;
                     key = 366;
-                    EffectManager.sendUIEffect(19366, 366, actor.SteamId, true);
                     break;
                 case "staff" or "s":
                     announce = "Staff Announcement";
                     id = 19369;
                     key = 369;
-                    EffectManager.sendUIEffect(19369, 369, actor.SteamId, true);
                     break;
                 case "event" or "e":
                     announce = "Event Announcement";
                     id = 19367;
                     key = 367;
-                    EffectManager.sendUIEffect(19367, 367, actor.SteamId, true);
                     break;
                 case "police" or "pd":
                     announce = "PD Announcement";
                     id = 19368;
                     key = 368;
-                    EffectManager.sendUIEffect(19368, 368, actor.SteamId, true);
                     break;
             }
 
-            EffectManager.sendUIEffectText(key, actor.SteamId, false, "Variable {0}", announce);
-            EffectManager.sendUIEffectText(key, actor.SteamId, false, "Variable {1}", message);
-            await UniTask.SwitchToThreadPool();
+            Parallel.ForEach(_UnturnedUserDirectory.GetOnlineUsers(), async x =>
+            {
+                await UniTask.SwitchToMainThread();
 
-            await UniTask.Delay(10000);
+                EffectManager.sendUIEffect(id, key, x.SteamId, true);
+                EffectManager.sendUIEffectText(key, actor.SteamId, false, "Variable {0}", announce);
+                EffectManager.sendUIEffectText(key, actor.SteamId, false, "Variable {1}", message);
 
-            await UniTask.SwitchToMainThread();
-            EffectManager.askEffectClearByID(id, actor.SteamId);
+                await UniTask.SwitchToThreadPool();
+                await UniTask.Delay(10000);
+                await UniTask.SwitchToMainThread();
+
+                EffectManager.askEffectClearByID(id, x.SteamId);
+            });
         }
     }
 }
